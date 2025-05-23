@@ -182,12 +182,32 @@
         alert("日付と内容を入力してください");
         return;
       }
+
+      // ローカル保存
       const entries = JSON.parse(localStorage.getItem("diary") || "{}");
       entries[date] = text;
       localStorage.setItem("diary", JSON.stringify(entries));
+
+      // Google Apps Script に送信
+      fetch("https://script.google.com/macros/s/AKfycbwTO2FD425E-huUuSiZ7e3jRDbsSrVQkUHpA4FfqmXDoX-5371709yaGIAOVvkZaydY/exec", {
+        method: "POST",
+        body: JSON.stringify({ date, text }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+        .then((res) => res.text())
+        .then((msg) => {
+          console.log("GAS返答:", msg);
+        })
+        .catch((err) => {
+          console.error("GAS送信エラー:", err);
+        });
+
       alert("保存しました！");
       textInput.value = "";
     }
+
 
     function searchEntries() {
       const keyword = keywordInput.value.trim();
