@@ -189,7 +189,7 @@
       localStorage.setItem("diary", JSON.stringify(entries));
 
       // Google Apps Script に送信
-      fetch("https://script.google.com/macros/s/AKfycbwTO2FD425E-huUuSiZ7e3jRDbsSrVQkUHpA4FfqmXDoX-5371709yaGIAOVvkZaydY/exec", {
+      fetch("https://script.google.com/macros/s/AKfycbwvNKc5RqFvpdIVy0RPdRfa6tJb-oC4V275wED0mJ3xo5vCUJTkHiytBzX2JG9YhQcu/exec", {
         method: "POST",
         body: JSON.stringify({ date, text }),
         headers: {
