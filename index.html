@@ -113,7 +113,7 @@
   </style>
 </head>
 <body>
-  <h1>📘 一言日記</h1>
+  <h1>📘 one-line diary</h1>
 
   <div class="section">
     <label for="date">日付選択:</label>
@@ -121,7 +121,7 @@
   </div>
 
   <div class="section">
-    <label for="text">今日のひとこと:</label>
+    <label for="text">今日の日記:</label>
     <textarea id="text" rows="3"></textarea>
     <button onclick="saveEntry()">保存</button>
   </div>
@@ -129,11 +129,26 @@
   <div class="section">
     <label for="keyword">キーワード検索:</label>
     <input type="text" id="keyword">
-    <label for="month">月別フィルタ:</label>
-    <select id="month">
-      <option value="">すべての月</option>
-      ${[...Array(12)].map((_, i) => `<option value="${String(i+1).padStart(2, '0')}">${i+1}月</option>`).join('')}
-    </select>
+    <label for="year">年別フィルタ:</label>
+<select id="year">
+  <option value="">すべての年</option>
+</select>
+<label for="month">月別フィルタ:</label>
+<select id="month">
+  <option value="">すべての月</option>
+  <option value="01">1月</option>
+  <option value="02">2月</option>
+  <option value="03">3月</option>
+  <option value="04">4月</option>
+  <option value="05">5月</option>
+  <option value="06">6月</option>
+  <option value="07">7月</option>
+  <option value="08">8月</option>
+  <option value="09">9月</option>
+  <option value="10">10月</option>
+  <option value="11">11月</option>
+  <option value="12">12月</option>
+</select>
     <button onclick="searchEntries()">検索</button>
     <button onclick="showAllEntries()">📖 すべての日記を表示</button>
     <div id="results"></div>
@@ -152,6 +167,8 @@
     const textInput = document.getElementById("text");
     const keywordInput = document.getElementById("keyword");
     const monthSelect = document.getElementById("month");
+    const yearSelect = document.getElementById("year");
+    populateYearOptions();
     const resultsDiv = document.getElementById("results");
     const modal = document.getElementById("modal");
     const allEntriesDiv = document.getElementById("allEntries");
@@ -175,10 +192,12 @@
     function searchEntries() {
       const keyword = keywordInput.value.trim();
       const selectedMonth = monthSelect.value;
+      const selectedYear = yearSelect.value;
       const entries = JSON.parse(localStorage.getItem("diary") || "{}");
       resultsDiv.innerHTML = "";
       Object.entries(entries).forEach(([date, text]) => {
         if ((keyword === '' || text.includes(keyword)) &&
+            (selectedYear === '' || date.slice(0, 4) === selectedYear) &&
             (selectedMonth === '' || date.slice(5, 7) === selectedMonth)) {
           const div = document.createElement("div");
           div.className = "result";
@@ -234,6 +253,37 @@
       });
       modal.style.display = "flex";
     }
+
+  function populateYearOptions() {
+    const entries = JSON.parse(localStorage.getItem("diary") || "{}");
+    const years = Object.keys(entries)
+      .map(date => date.slice(0, 4))
+      .filter((year, index, self) => self.indexOf(year) === index)
+      .sort();
+
+    const currentYear = new Date().getFullYear();
+    const futureYears = -5;
+    const yearSelect = document.getElementById("year");
+    yearSelect.innerHTML = '<option value="">すべての年</option>';
+
+    years.forEach(y => {
+      const option = document.createElement("option");
+      option.value = y;
+      option.textContent = `${y}年`;
+      yearSelect.appendChild(option);
+    });
+
+    for (let y = currentYear + 1; y <= currentYear + futureYears; y++) {
+      if (!years.includes(y.toString())) {
+        const option = document.createElement("option");
+        option.value = y.toString();
+        option.textContent = `${y}年`;
+        yearSelect.appendChild(option);
+      }
+    }
+  }
+
+
 
     function closeModal() {
       modal.style.display = "none";
