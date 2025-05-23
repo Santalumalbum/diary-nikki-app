@@ -9,6 +9,7 @@
   <meta name="theme-color" content="#ffffff">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap" rel="stylesheet">
   <style>
+    * { box-sizing: border-box; }
     body {
       font-family: 'Noto Sans JP', sans-serif;
       margin: 0;
@@ -27,8 +28,11 @@
       padding: 1rem;
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
     }
-    input, textarea, button {
+    input, textarea, button, select {
       width: 100%;
       font-size: 1rem;
       padding: 0.6rem;
@@ -56,11 +60,55 @@
       margin-top: 0.5rem;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-    label {
-      font-weight: bold;
-    }
+    label { font-weight: bold; }
     input[type="date"]::-webkit-calendar-picker-indicator {
       filter: invert(0.5);
+    }
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal-entry {
+      border-bottom: 1px solid #ccc;
+      padding: 0.5rem 0;
+    }
+    .modal-entry-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.25rem;
+    }
+    .modal-entry button {
+      background: #dc3545;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.8rem;
+      width: auto;
+      margin-left: 0.5rem;
+    }
+    .modal-entry button.edit {
+      background: #28a745;
+    }
+    .modal-entry button.edit:hover {
+      background: #218838;
+    }
+    .modal-entry button:hover {
+      background: #b02a37;
     }
   </style>
 </head>
@@ -81,17 +129,33 @@
   <div class="section">
     <label for="keyword">キーワード検索:</label>
     <input type="text" id="keyword">
+    <label for="month">月別フィルタ:</label>
+    <select id="month">
+      <option value="">すべての月</option>
+      ${[...Array(12)].map((_, i) => `<option value="${String(i+1).padStart(2, '0')}">${i+1}月</option>`).join('')}
+    </select>
     <button onclick="searchEntries()">検索</button>
+    <button onclick="showAllEntries()">📖 すべての日記を表示</button>
     <div id="results"></div>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <h2>📅 すべての日記</h2>
+      <div id="allEntries"></div>
+      <button onclick="closeModal()">閉じる</button>
+    </div>
   </div>
 
   <script>
     const dateInput = document.getElementById("date");
     const textInput = document.getElementById("text");
     const keywordInput = document.getElementById("keyword");
+    const monthSelect = document.getElementById("month");
     const resultsDiv = document.getElementById("results");
+    const modal = document.getElementById("modal");
+    const allEntriesDiv = document.getElementById("allEntries");
 
-    // 初期日付を今日に設定
     dateInput.valueAsDate = new Date();
 
     function saveEntry() {
@@ -110,16 +174,69 @@
 
     function searchEntries() {
       const keyword = keywordInput.value.trim();
+      const selectedMonth = monthSelect.value;
       const entries = JSON.parse(localStorage.getItem("diary") || "{}");
       resultsDiv.innerHTML = "";
       Object.entries(entries).forEach(([date, text]) => {
-        if (text.includes(keyword)) {
+        if ((keyword === '' || text.includes(keyword)) &&
+            (selectedMonth === '' || date.slice(5, 7) === selectedMonth)) {
           const div = document.createElement("div");
           div.className = "result";
           div.innerHTML = `<strong>${date}</strong><br>${text}`;
           resultsDiv.appendChild(div);
         }
       });
+    }
+
+    function showAllEntries() {
+      const entries = JSON.parse(localStorage.getItem("diary") || "{}");
+      allEntriesDiv.innerHTML = "";
+      Object.entries(entries).sort((a, b) => b[0].localeCompare(a[0])).forEach(([date, text]) => {
+        const entryDiv = document.createElement("div");
+        entryDiv.className = "modal-entry";
+
+        const headerDiv = document.createElement("div");
+        headerDiv.className = "modal-entry-header";
+
+        const dateElem = document.createElement("strong");
+        dateElem.textContent = date;
+
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "編集";
+        editBtn.className = "edit";
+        editBtn.onclick = () => {
+          const newText = prompt("新しい内容を入力してください：", text);
+          if (newText !== null) {
+            entries[date] = newText;
+            localStorage.setItem("diary", JSON.stringify(entries));
+            showAllEntries();
+          }
+        };
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "削除";
+        deleteBtn.onclick = () => {
+          delete entries[date];
+          localStorage.setItem("diary", JSON.stringify(entries));
+          showAllEntries();
+        };
+
+        headerDiv.appendChild(dateElem);
+        headerDiv.appendChild(editBtn);
+        headerDiv.appendChild(deleteBtn);
+
+        const textElem = document.createElement("div");
+        textElem.textContent = text;
+
+        entryDiv.appendChild(headerDiv);
+        entryDiv.appendChild(textElem);
+        allEntriesDiv.appendChild(entryDiv);
+      });
+      modal.style.display = "flex";
+    }
+
+    function closeModal() {
+      modal.style.display = "none";
     }
   </script>
 
