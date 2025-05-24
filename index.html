@@ -190,7 +190,7 @@
       localStorage.setItem("diary", JSON.stringify(entries));
 
       // 保存先：スプレッドシート
-      fetch('https://script.google.com/macros/s/AKfycbxSWZhgu_PEsAZuCLoq0dGElWy6EQ9887ckPrjX6x8nw7DVov1Cs4EdLpxxwc3R-4wP/exec', {
+      fetch('https://script.google.com/macros/s/AKfycbzhPFBGRPVP3u2lKpyquegYh5ChMj_7ybrfU72zdnRWtiCugSFfw1a2JsSeeMnRWQl6/exec', {
         method: 'POST',
         body: JSON.stringify({ date, text }),
         headers: {
