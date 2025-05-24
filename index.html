@@ -178,34 +178,38 @@
     function saveEntry() {
       const date = dateInput.value;
       const text = textInput.value;
+
       if (!date || !text) {
         alert("日付と内容を入力してください");
         return;
       }
 
-      // ローカル保存
+      // 保存先：ローカルストレージ
       const entries = JSON.parse(localStorage.getItem("diary") || "{}");
       entries[date] = text;
       localStorage.setItem("diary", JSON.stringify(entries));
 
-      // Google Apps Script に送信
-      fetch("https://script.google.com/macros/s/AKfycbwvNKc5RqFvpdIVy0RPdRfa6tJb-oC4V275wED0mJ3xo5vCUJTkHiytBzX2JG9YhQcu/exec", {
-        method: "POST",
+      // 保存先：スプレッドシート
+      fetch('https://script.google.com/macros/s/AKfycbxSWZhgu_PEsAZuCLoq0dGElWy6EQ9887ckPrjX6x8nw7DVov1Cs4EdLpxxwc3R-4wP/exec', {
+        method: 'POST',
         body: JSON.stringify({ date, text }),
         headers: {
-          "Content-Type": "application/json",
-        },
+          'Content-Type': 'application/json'
+        }
       })
-        .then((res) => res.text())
-        .then((msg) => {
-          console.log("GAS返答:", msg);
-        })
-        .catch((err) => {
-          console.error("GAS送信エラー:", err);
-        });
-
-      alert("保存しました！");
-      textInput.value = "";
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
+          alert("保存しました！（ローカル＋スプレッドシート）");
+          textInput.value = "";
+        } else {
+          alert("スプレッドシート保存エラー: " + data.message);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("通信エラーが発生しました。");
+      });
     }
 
 
