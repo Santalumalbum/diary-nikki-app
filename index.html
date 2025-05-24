@@ -9,6 +9,7 @@
   <meta name="theme-color" content="#ffffff">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap" rel="stylesheet">
   <style>
+    /* 省略せずすべて含めます（スタイルそのまま） */
     * { box-sizing: border-box; }
     body {
       font-family: 'Noto Sans JP', sans-serif;
@@ -130,25 +131,15 @@
     <label for="keyword">キーワード検索:</label>
     <input type="text" id="keyword">
     <label for="year">年別フィルタ:</label>
-<select id="year">
-  <option value="">すべての年</option>
-</select>
-<label for="month">月別フィルタ:</label>
-<select id="month">
-  <option value="">すべての月</option>
-  <option value="01">1月</option>
-  <option value="02">2月</option>
-  <option value="03">3月</option>
-  <option value="04">4月</option>
-  <option value="05">5月</option>
-  <option value="06">6月</option>
-  <option value="07">7月</option>
-  <option value="08">8月</option>
-  <option value="09">9月</option>
-  <option value="10">10月</option>
-  <option value="11">11月</option>
-  <option value="12">12月</option>
-</select>
+    <select id="year"><option value="">すべての年</option></select>
+    <label for="month">月別フィルタ:</label>
+    <select id="month">
+      <option value="">すべての月</option>
+      <option value="01">1月</option><option value="02">2月</option><option value="03">3月</option>
+      <option value="04">4月</option><option value="05">5月</option><option value="06">6月</option>
+      <option value="07">7月</option><option value="08">8月</option><option value="09">9月</option>
+      <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+    </select>
     <button onclick="searchEntries()">検索</button>
     <button onclick="showAllEntries()">📖 すべての日記を表示</button>
     <div id="results"></div>
@@ -163,55 +154,49 @@
   </div>
 
   <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzougBOQLJQEX4cLq8KJWNkzHhqR1DWinOcHq0CwwRzIg7TSgqDs6Www7WOwyK9CkdZ/exec";
+
     const dateInput = document.getElementById("date");
     const textInput = document.getElementById("text");
     const keywordInput = document.getElementById("keyword");
     const monthSelect = document.getElementById("month");
     const yearSelect = document.getElementById("year");
-    populateYearOptions();
     const resultsDiv = document.getElementById("results");
     const modal = document.getElementById("modal");
     const allEntriesDiv = document.getElementById("allEntries");
 
+    populateYearOptions();
     dateInput.valueAsDate = new Date();
 
     function saveEntry() {
       const date = dateInput.value;
       const text = textInput.value;
-
       if (!date || !text) {
         alert("日付と内容を入力してください");
         return;
       }
 
-      // 保存先：ローカルストレージ
+      // ローカル保存
       const entries = JSON.parse(localStorage.getItem("diary") || "{}");
       entries[date] = text;
       localStorage.setItem("diary", JSON.stringify(entries));
+      alert("保存しました！");
+      textInput.value = "";
 
-      // 保存先：スプレッドシート
-      fetch('https://script.google.com/macros/s/AKfycbzhPFBGRPVP3u2lKpyquegYh5ChMj_7ybrfU72zdnRWtiCugSFfw1a2JsSeeMnRWQl6/exec', {
-        method: 'POST',
-        body: JSON.stringify({ date, text }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === 'success') {
-          alert("保存しました！（ローカル＋スプレッドシート）");
-          textInput.value = "";
-        } else {
-          alert("スプレッドシート保存エラー: " + data.message);
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        alert("通信エラーが発生しました。");
-      });
+      // GASに送信
+      fetch(GAS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date, text })
+      }).then(res => res.json())
+        .then(data => {
+          if (data.result !== "success") {
+            console.error("スプレッドシート保存失敗:", data.message);
+          }
+        }).catch(err => {
+          console.error("GAS通信エラー:", err);
+        });
     }
-
 
     function searchEntries() {
       const keyword = keywordInput.value.trim();
@@ -278,39 +263,22 @@
       modal.style.display = "flex";
     }
 
-  function populateYearOptions() {
-    const entries = JSON.parse(localStorage.getItem("diary") || "{}");
-    const years = Object.keys(entries)
-      .map(date => date.slice(0, 4))
-      .filter((year, index, self) => self.indexOf(year) === index)
-      .sort();
-
-    const currentYear = new Date().getFullYear();
-    const futureYears = -5;
-    const yearSelect = document.getElementById("year");
-    yearSelect.innerHTML = '<option value="">すべての年</option>';
-
-    years.forEach(y => {
-      const option = document.createElement("option");
-      option.value = y;
-      option.textContent = `${y}年`;
-      yearSelect.appendChild(option);
-    });
-
-    for (let y = currentYear + 1; y <= currentYear + futureYears; y++) {
-      if (!years.includes(y.toString())) {
-        const option = document.createElement("option");
-        option.value = y.toString();
-        option.textContent = `${y}年`;
-        yearSelect.appendChild(option);
-      }
-    }
-  }
-
-
-
     function closeModal() {
       modal.style.display = "none";
+    }
+
+    function populateYearOptions() {
+      const entries = JSON.parse(localStorage.getItem("diary") || "{}");
+      const years = Object.keys(entries).map(date => date.slice(0, 4));
+      const uniqueYears = [...new Set(years)].sort();
+      const currentYear = new Date().getFullYear();
+      yearSelect.innerHTML = '<option value="">すべての年</option>';
+      uniqueYears.forEach(y => {
+        const opt = document.createElement("option");
+        opt.value = y;
+        opt.textContent = `${y}年`;
+        yearSelect.appendChild(opt);
+      });
     }
   </script>
 
